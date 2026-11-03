@@ -25,7 +25,8 @@ string Rover::directionToString(Direction direction) {
     return "UNKNOWN";
 }
 
-Rover::Rover(Location initialLocation, Direction initialHeading, int initialBatteryLevel) {
+Rover::Rover(Location initialLocation, Direction initialHeading, int initialBatteryLevel, ostream& output)
+: outputStream(output) {
     location = initialLocation;
     heading = initialHeading;
     batteryLevel = initialBatteryLevel;
@@ -127,7 +128,7 @@ bool Rover::executeCommand(const char command) {
         case COMMAND_SCAN: wasSuccessful = scan(); break;
         case COMMAND_CHARGE: wasSuccessful = charge(); break;
         default:
-            cout << "Command " << command << " failed. Invalid command."<< endl;
+            outputStream << "Command " << command << " failed. Invalid command."<< endl;
             return false;
     }
     printCommandStatus(command, wasSuccessful);
@@ -147,11 +148,11 @@ void Rover::executeMission(Mission& mission) {
 }
 
 void Rover::printCommandStatus(char command, bool wasSuccessful) {
-    cout << "Command " << command << " ";
+    outputStream << "Command " << command << " ";
     if (wasSuccessful) {
-        cout << "succeeded. ";
+        outputStream << "succeeded. ";
     } else {
-        cout << "failed. ";
+        outputStream << "failed. ";
     }
-    cout << toString() << endl;
+    outputStream << toString() << endl;
 }
