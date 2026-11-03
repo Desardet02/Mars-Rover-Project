@@ -3,6 +3,7 @@
 //
 
 #include <iostream>
+#include <fstream>
 using namespace std;
 
 #include "Location.h"
@@ -38,46 +39,80 @@ void split(string line, char delimiter, string fields[], int capacity) {
     return;
 }
 
-
-Location getLocation(string prompt, int minCoord, int maxCoord) {
-    int x, y;
-    do {
-        cout << prompt;
-        cin >> x >> y;
-    } while (x < minCoord || x > maxCoord || y < minCoord || y > maxCoord);
-
-    return Location{x, y};
-}
-
-Mission getMission(int minCoord, int maxCoord) {
-    cout << endl << "Input mission (type 'quit' to exit): ";
-    string userEnteredMission;
-    cin >> userEnteredMission;
-    Mission mission(userEnteredMission);
-
-    if (mission.isQuit()) {
-        return mission;
+bool isValidMissionLine(const string& line) {
+    int commaCount = 0;
+    for (char character : line) {
+        if (character == ',') {
+            commaCount++;
+        }
+    }
+    if (commaCount != 2) {
+        return false;
     }
 
-    Location goal = getLocation("Input goal as 'x y': ", minCoord, maxCoord);
-    mission.setGoal(goal);
-    return mission;
+    string fields[3];
+    split(line, ',', fields, 3);
+
+    if (fields[0].empty()) {
+        return false;
+    }
+    for (char command : fields[0]) {
+        if (command != 'F' && command != 'L' && command != 'R'
+            && command != 'S' && command != 'C') {
+            return false;
+        }
+    }
+
+    for (int i = 1; i <= 2; i++) {
+        if (fields[i].length() != 1) {
+            return false;
+        }
+        if (fields[i][0] < '0' || fields[i][0] > '9') {
+            return false;
+        }
+    }
+    return true;
 }
 
 int main() {
+    cout << "Enter input filename: ";
+    string inputFilename;
+    cin >> inputFilename;
+    ifstream inFile;
+    inFile.open(inputFilename);
+    if (inFile.fail()) {
+        cout << "Error: could not open input file " << inputFilename << endl;
+        return 1;
+    }
+
+    cout << "Enter output filename: ";
+    string outputFilename;
+    cin >> outputFilename;
+    ofstream outFile;
+    outFile.open(outputFilename);
+    if (outFile.fail()) {
+        cout << "Error: could not open output file " << outputFilename << endl;
+        return 1;
+    }
+
     int WORLD_SIZE = 10;
     Location chargerLocation{0, 0};
     World mars(WORLD_SIZE, chargerLocation);
 
     Location startingLocation{0, 0};
-    Rover rover(startingLocation, Direction::EAST, 40);
+    Rover rover(startingLocation, Direction::EAST, 40, outFile);
     rover.putOnWorld(mars);
 
-    while (true) {
-        Mission mission = getMission(mars.getMinCoord(), mars.getMaxCoord());
-        if (mission.isQuit()) {
-            break;
+    string line;
+    while (getline(inFile, line)) {
+        if (!isValidMissionLine(line)) {
+            continue;
         }
+        string fields[3];
+        split(line, ',', fields, 3);
+        Mission mission(fields[0]);
+        Location goal(stoi(fields[1]), stoi(fields[2]));
+        mission.setGoal(goal);
         rover.executeMission(mission);
         cout << mission.getStatus();
         cout << "Rover ended at " << rover.toString() << endl;
